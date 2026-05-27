@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exhibition Expense Desk</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="login-view" id="loginView" aria-labelledby="loginTitle">
+        <div class="brand-strip" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <form class="login-panel" id="loginForm">
+          <p class="eyebrow">Private Exhibition Ledger</p>
+          <h1 id="loginTitle">展覽花費管理</h1>
+          <p class="muted">輸入密碼後查看近期展覽預算、花費分類與 invoice 入庫紀錄。</p>
+          <label for="passwordInput">密碼</label>
+          <div class="password-row">
+            <input id="passwordInput" type="password" autocomplete="current-password" placeholder="輸入密碼" />
+            <button class="icon-button" type="button" id="togglePassword" aria-label="顯示或隱藏密碼" title="顯示或隱藏密碼">
+              <span data-icon="eye"></span>
+            </button>
+          </div>
+          <button class="primary-action" type="submit">登入</button>
+          <p class="form-error" id="loginError" role="alert"></p>
+          <p class="hint">Demo 密碼：<strong>expo2026</strong></p>
+        </form>
+      </section>
+
+      <section class="app-view is-hidden" id="appView">
+        <aside class="sidebar">
+          <div>
+            <p class="eyebrow">Expense Control</p>
+            <h2>展覽支出</h2>
+          </div>
+          <nav aria-label="Expense sections">
+            <a href="#overview" class="nav-item is-active"><span data-icon="layout"></span>總覽</a>
+            <a href="#entry" class="nav-item"><span data-icon="upload"></span>新增入庫</a>
+            <a href="#records" class="nav-item"><span data-icon="file"></span>紀錄</a>
+          </nav>
+          <button class="ghost-action" id="logoutButton" type="button"><span data-icon="lock"></span>登出</button>
+        </aside>
+
+        <div class="workspace">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">目前專案</p>
+              <h1 id="projectTitle">G2E 展覽費用 Dashboard</h1>
+            </div>
+            <div class="budget-editor">
+              <label for="budgetInput">預估 Budget</label>
+              <div class="money-input">
+                <span>NT$</span>
+                <input id="budgetInput" type="number" min="0" step="100" />
+              </div>
+            </div>
+          </header>
+
+          <div class="project-tabs" role="tablist" aria-label="展覽專案">
+            <button class="project-tab is-active" type="button" role="tab" aria-selected="true" data-project="g2e">G2E</button>
+            <button class="project-tab" type="button" role="tab" aria-selected="false" data-project="sigma">Sigma</button>
+          </div>
+
+          <div class="year-tabs" id="yearTabs" role="tablist" aria-label="費用年份"></div>
+
+          <section class="summary-grid" id="overview">
+            <article class="metric-card">
+              <span class="metric-icon" data-icon="wallet"></span>
+              <p>已知花費</p>
+              <strong id="totalSpent">$0</strong>
+              <small id="recordCount">0 筆紀錄</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-icon" data-icon="target"></span>
+              <p>預估 Budget</p>
+              <strong id="budgetValue">$0</strong>
+              <small id="budgetStatus">尚未設定</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-icon" data-icon="percent"></span>
+              <p>Budget 使用率</p>
+              <strong id="budgetPercent">0%</strong>
+              <small id="remainingBudget">$0 remaining</small>
+            </article>
+          </section>
+
+          <section class="panel booth-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Booth Cost</p>
+                <h2 id="boothTitle">攤位大小與每平方成本</h2>
+              </div>
+              <span class="status-pill" id="boothNote">-</span>
+            </div>
+            <div class="booth-grid" id="boothGrid"></div>
+          </section>
+
+          <section class="analysis-layout">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">By Category</p>
+                  <h2 id="categoryTitle">2025 已知花費一覽</h2>
+                </div>
+                <span class="status-pill" id="topCategory">尚無資料</span>
+              </div>
+              <div class="category-list" id="categoryList"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Budget Gap</p>
+                  <h2>距離預算</h2>
+                </div>
+              </div>
+              <div class="progress-wrap">
+                <div class="progress-ring" id="progressRing"><span id="ringPercent">0%</span></div>
+                <div>
+                  <p id="budgetNarrative">設定 budget 後即可追蹤目前已花費比例。</p>
+                  <dl class="mini-stats">
+                    <div><dt>最高類別</dt><dd id="highestCategory">-</dd></div>
+                    <div><dt>平均單筆</dt><dd id="averageExpense">$0</dd></div>
+                    <div><dt>最後更新</dt><dd id="lastUpdated">-</dd></div>
+                  </dl>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section class="panel history-overview">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Historical Share</p>
+                <h2 id="historyShareTitle">匯入分類比例</h2>
+              </div>
+            </div>
+            <div class="share-strip" id="historyCategoryList"></div>
+            <div class="history-divider"></div>
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">Imported Data</p>
+                <h2>年度費用摘要</h2>
+              </div>
+            </div>
+            <div class="year-grid" id="historyYearGrid"></div>
+          </section>
+
+          <section class="history-grid is-hidden">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Imported Data</p>
+                  <h2>年度費用摘要</h2>
+                </div>
+              </div>
+              <div class="year-grid" id="historyYearGrid"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Historical Share</p>
+                  <h2 id="historyShareTitle">匯入分類比例</h2>
+                </div>
+              </div>
+              <div class="category-list compact"></div>
+            </article>
+          </section>
+
+          <section class="panel history-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Analysis Table</p>
+                <h2 id="historyTableTitle">G2E 近年費用分析</h2>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="history-table">
+                <thead id="historyTableHead"></thead>
+                <tbody id="historyTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="entry-grid" id="entry">
+            <form class="panel entry-form" id="expenseForm">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">New Expense</p>
+                  <h2>新增花費 / Invoice</h2>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label>
+                  類別
+                  <select id="categoryInput" required></select>
+                </label>
+                <label>
+                  金額
+                  <input id="amountInput" type="number" min="0" step="0.01" placeholder="例如 12000" required />
+                </label>
+                <label>
+                  日期
+                  <input id="dateInput" type="date" required />
+                </label>
+                <label>
+                  供應商 / 對象
+                  <input id="vendorInput" type="text" placeholder="例如 場館、物流、設計師" />
+                </label>
+                <label class="wide">
+                  上傳 invoice PDF
+                  <input id="invoiceInput" type="file" accept="application/pdf" />
+                </label>
+                <label class="wide">
+                  備註
+                  <textarea id="noteInput" rows="3" placeholder="補充付款狀態、匯率、負責人或 invoice 編號"></textarea>
+                </label>
+              </div>
+              <button class="primary-action" type="submit"><span data-icon="plus"></span>入庫</button>
+            </form>
+
+            <article class="panel quick-add">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Quick View</p>
+                  <h2>常用類別</h2>
+                </div>
+              </div>
+              <div class="quick-chips" id="quickChips"></div>
+            </article>
+          </section>
+
+          <section class="panel records-panel" id="records">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Ledger</p>
+                <h2>入庫紀錄</h2>
+              </div>
+              <div class="filters">
+                <select id="filterCategory"></select>
+                <button class="ghost-action" id="exportButton" type="button"><span data-icon="download"></span>匯出 CSV</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>日期</th>
+                    <th>類別</th>
+                    <th>金額</th>
+                    <th>供應商 / 對象</th>
+                    <th>Invoice</th>
+                    <th>備註</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="expenseTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
