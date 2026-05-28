@@ -120,7 +120,11 @@ function normalizeState(value) {
     next.projects[key] = {
       budget: value.projects?.[key]?.budget ?? projects[key].budget,
       selectedYear: value.projects?.[key]?.selectedYear ?? projects[key].latestYear,
-      expenses: value.projects?.[key]?.expenses ?? []
+      userYears: value.projects?.[key]?.userYears ?? [],
+      expenses: (value.projects?.[key]?.expenses ?? []).map((expense) => ({
+        ...expense,
+        year: expense.year || projects[key].latestYear
+      }))
     };
   });
 
@@ -162,7 +166,15 @@ function currentLedger() {
 function selectedYear() {
   const project = currentProject();
   const year = currentLedger().selectedYear;
-  return project.years.includes(year) ? year : project.latestYear;
+  return allYears(project, currentLedger()).includes(year) ? year : project.latestYear;
+}
+
+function allYears(project = currentProject(), ledger = currentLedger()) {
+  return [...new Set([...(ledger.userYears || []), ...project.years])].sort((a, b) => Number(b) - Number(a));
+}
+
+function isImportedYear(year = selectedYear()) {
+  return currentProject().years.includes(year);
 }
 
 function renderIcons() {
@@ -198,8 +210,10 @@ function baselineTotal() {
 }
 
 function manualTotal() {
-  if (selectedYear() !== currentProject().latestYear) return 0;
-  return currentLedger().expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const year = selectedYear();
+  return currentLedger()
+    .expenses.filter((expense) => expense.year === year)
+    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
 }
 
 function totalSpent() {
@@ -212,12 +226,9 @@ function categoryTotals() {
 
   return categories.map((category) => {
     const baseline = project.rows.find((row) => row.category === category)?.amounts[year] || 0;
-    const manual =
-      year === project.latestYear
-        ? currentLedger()
-            .expenses.filter((expense) => expense.category === category)
-            .reduce((sum, expense) => sum + Number(expense.amount || 0), 0)
-        : 0;
+    const manual = currentLedger()
+      .expenses.filter((expense) => expense.year === year && expense.category === category)
+      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
     return { category, baseline, manual, total: baseline + manual };
   });
 }
@@ -227,18 +238,21 @@ function renderSummary(totals, spent) {
   const percent = budget > 0 ? (spent / budget) * 100 : 0;
   const remaining = budget - spent;
   const top = totals.filter((item) => item.total > 0).sort((a, b) => b.total - a.total)[0];
-  const manualCount = currentLedger().expenses.length;
+  const year = selectedYear();
+  const manualEntries = currentLedger().expenses.filter((expense) => expense.year === year);
+  const manualCount = manualEntries.length;
   const latest = currentLedger()
-    .expenses.map((expense) => expense.date)
+    .expenses.filter((expense) => expense.year === year)
+    .map((expense) => expense.date)
     .filter(Boolean)
     .sort()
     .at(-1);
 
   $("#projectTitle").textContent = currentProject().title;
+  $("#entryTitle").textContent = `新增 ${year} 花費 / Invoice`;
   $("#budgetInput").value = budget;
   $("#totalSpent").textContent = money.format(spent);
-  $("#recordCount").textContent =
-    selectedYear() === currentProject().latestYear ? `${selectedYear()} baseline + ${manualCount} 筆新增` : `${selectedYear()} 匯入資料`;
+  $("#recordCount").textContent = isImportedYear(year) ? `${year} baseline + ${manualCount} 筆新增` : `${year} 新增表單 + ${manualCount} 筆紀錄`;
   $("#budgetValue").textContent = money.format(budget);
   $("#budgetStatus").textContent = budget > 0 ? "已設定追蹤" : "尚未設定";
   $("#budgetPercent").textContent = `${Math.round(percent)}%`;
@@ -252,12 +266,12 @@ function renderSummary(totals, spent) {
       : "設定 budget 後即可追蹤目前已花費比例。";
   $("#highestCategory").textContent = top ? `${top.category} ${money.format(top.total)}` : "-";
   $("#averageExpense").textContent = money.format(spent / Math.max(totals.filter((item) => item.total > 0).length, 1));
-  $("#lastUpdated").textContent = selectedYear() === currentProject().latestYear && latest ? latest : `${selectedYear()} 匯入資料`;
+  $("#lastUpdated").textContent = latest || (isImportedYear(year) ? `${year} 匯入資料` : `${year} 尚未入庫`);
   $("#topCategory").textContent = top ? `最高：${top.category}` : "尚無資料";
 }
 
 function renderCategories(totals, spent) {
-  $("#categoryList").innerHTML = totals
+  const rows = totals
     .filter((item) => item.total > 0)
     .map((item) => {
       const share = spent > 0 ? (item.total / spent) * 100 : 0;
@@ -269,8 +283,9 @@ function renderCategories(totals, spent) {
           <div class="category-amount">${money.format(item.total)}</div>
         </div>
       `;
-    })
-    .join("");
+    });
+
+  $("#categoryList").innerHTML = rows.length ? rows.join("") : `<div class="booth-empty">此年份尚未有花費紀錄，可到新增入庫表單開始建立。</div>`;
 
   document.querySelectorAll(".quick-chip").forEach((chip) => {
     const total = totals.find((item) => item.category === chip.dataset.category)?.total || 0;
@@ -281,19 +296,17 @@ function renderCategories(totals, spent) {
 function renderHistory() {
   const project = currentProject();
   const year = selectedYear();
-  const selectedTotal = project.totals[year] || 0;
   const compareYear = previousYear(project, year);
-  const compareTotal = compareYear ? project.totals[compareYear] || 0 : 0;
 
   $("#categoryTitle").textContent = `${year} 已知花費一覽`;
-  $("#historyShareTitle").textContent = `${year} 匯入分類比例`;
+  $("#historyShareTitle").textContent = isImportedYear(year) ? `${year} 匯入分類比例` : `${year} 新增分類比例`;
   $("#historyTableTitle").textContent = compareYear ? `${project.name} ${year} vs ${compareYear} 費用分析` : `${project.name} ${year} 費用分析`;
-  $("#historyYearGrid").innerHTML = project.years
+  $("#historyYearGrid").innerHTML = allYears(project, currentLedger())
     .map((year) => {
-      const amount = project.totals[year] || 0;
+      const amount = (project.totals[year] || 0) + manualTotalForYear(year);
       const isActive = year === selectedYear();
       const diff = compareYearForCard(project, year);
-      const label = diff ? `${diff.diff > 0 ? "+" : ""}${money.format(diff.diff)} vs ${diff.year}` : "最早匯入年份";
+      const label = diff ? `${diff.diff > 0 ? "+" : ""}${money.format(diff.diff)} vs ${diff.year}` : isImportedYear(year) ? "最早匯入年份" : "新增年份";
       return `
         <button class="year-card ${isActive ? "is-active" : ""}" type="button" data-year="${year}" aria-pressed="${isActive}">
           <small>${year}</small>
@@ -304,20 +317,41 @@ function renderHistory() {
     })
     .join("");
 
-  $("#historyCategoryList").innerHTML = project.rows
-    .filter((row) => row.amounts[year] > 0)
-    .map((row) => `
-      <div class="share-item" title="${row.category}">
-        <div class="share-item-header">
-          <strong>${row.category}</strong>
-          <span>${row.shares[year].toFixed(1)}%</span>
-        </div>
-        <div class="bar-track"><div class="bar-fill" style="width:${row.shares[year]}%"></div></div>
-      </div>
-    `)
-    .join("");
+  renderShareStrip(project, year);
 
   renderHistoryTable(project, year, compareYear);
+}
+
+function renderShareStrip(project, year) {
+  const total = (project.totals[year] || 0) + manualTotalForYear(year);
+  const items = categories
+    .map((category) => {
+      const importedRow = project.rows.find((row) => row.category === category);
+      const amount = (importedRow?.amounts[year] || 0) + manualTotalForYear(year, category);
+      const share = total > 0 ? (amount / total) * 100 : 0;
+      return { category, amount, share };
+    })
+    .filter((item) => item.amount > 0);
+
+  $("#historyCategoryList").innerHTML = items.length
+    ? items
+        .map((item) => `
+          <div class="share-item" title="${item.category}">
+            <div class="share-item-header">
+              <strong>${item.category}</strong>
+              <span>${item.share.toFixed(1)}%</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${item.share}%"></div></div>
+          </div>
+        `)
+        .join("")
+    : `<div class="booth-empty">此年份尚未有匯入資料或新增花費。</div>`;
+}
+
+function manualTotalForYear(year, category = null) {
+  return currentLedger()
+    .expenses.filter((expense) => expense.year === year && (!category || expense.category === category))
+    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
 }
 
 function renderBoothMetrics() {
@@ -358,8 +392,9 @@ function metricTile(label, value, detail) {
 }
 
 function previousYear(project, year) {
-  const index = project.years.indexOf(year);
-  return index >= 0 ? project.years[index + 1] : null;
+  const years = allYears(project, currentLedger());
+  const index = years.indexOf(year);
+  return index >= 0 ? years[index + 1] : null;
 }
 
 function compareYearForCard(project, year) {
@@ -367,34 +402,39 @@ function compareYearForCard(project, year) {
   if (!compare) return null;
   return {
     year: compare,
-    diff: (project.totals[year] || 0) - (project.totals[compare] || 0)
+    diff: (project.totals[year] || 0) + manualTotalForYear(year) - ((project.totals[compare] || 0) + manualTotalForYear(compare))
   };
 }
 
 function renderHistoryTable(project, year, compareYear) {
   const compareHeaders = compareYear ? `<th>${compareYear} 金額</th><th>${year} vs ${compareYear}</th>` : "";
   $("#historyTableHead").innerHTML = `<tr><th>費用項目</th><th>${year} 金額</th><th>${year} 比例</th>${compareHeaders}</tr>`;
-  $("#historyTableBody").innerHTML = project.rows
-    .map((row) => {
-      const amount = row.amounts[year] || 0;
-      const share = row.shares[year] || 0;
+  const total = (project.totals[year] || 0) + manualTotalForYear(year);
+  $("#historyTableBody").innerHTML = categories
+    .map((category) => {
+      const row = project.rows.find((item) => item.category === category);
+      const amount = (row?.amounts[year] || 0) + manualTotalForYear(year, category);
+      const share = total > 0 ? (amount / total) * 100 : 0;
       const compareCells = compareYear
         ? (() => {
-            const compareAmount = row.amounts[compareYear] || 0;
+            const compareAmount = (row?.amounts[compareYear] || 0) + manualTotalForYear(compareYear, category);
             const diff = amount - compareAmount;
             const className = diff >= 0 ? "diff-positive" : "diff-negative";
             return `<td class="amount-cell">${money.format(compareAmount)}</td><td class="${className}">${money.format(diff)}</td>`;
           })()
         : "";
-      return `<tr><td>${row.category}</td><td class="amount-cell">${money.format(amount)}</td><td>${share.toFixed(1)}%</td>${compareCells}</tr>`;
+      return { category, amount, share, compareCells };
     })
+    .filter((row) => row.amount > 0 || compareYear)
+    .map((row) => `<tr><td>${row.category}</td><td class="amount-cell">${money.format(row.amount)}</td><td>${row.share.toFixed(1)}%</td>${row.compareCells}</tr>`)
     .join("");
 }
 
 function renderTable() {
   const filter = $("#filterCategory").value;
+  const year = selectedYear();
   const expenses = currentLedger()
-    .expenses.filter((expense) => filter === "全部類別" || expense.category === filter)
+    .expenses.filter((expense) => expense.year === year && (filter === "全部類別" || expense.category === filter))
     .sort((a, b) => b.date.localeCompare(a.date));
 
   $("#expenseTable").innerHTML = expenses.length
@@ -413,7 +453,7 @@ function renderTable() {
         `
         )
         .join("")
-    : `<tr><td colspan="7">目前沒有新增 invoice 或手動入庫紀錄。</td></tr>`;
+    : `<tr><td colspan="7">${year} 目前沒有新增 invoice 或手動入庫紀錄。</td></tr>`;
 }
 
 function renderTabs() {
@@ -424,11 +464,31 @@ function renderTabs() {
   });
 
   $("#yearTabs").innerHTML = currentProject()
-    .years.map((year) => {
-      const isActive = year === selectedYear();
-      return `<button class="year-tab ${isActive ? "is-active" : ""}" type="button" role="tab" aria-selected="${isActive}" data-year="${year}">${year}</button>`;
-    })
-    .join("");
+    ? allYears()
+        .map((year) => {
+          const isActive = year === selectedYear();
+          return `<button class="year-tab ${isActive ? "is-active" : ""}" type="button" role="tab" aria-selected="${isActive}" data-year="${year}">${year}</button>`;
+        })
+        .join("") + `<button class="year-tab year-add" type="button" data-add-year><span data-icon="plus"></span>年份</button>`
+    : "";
+  renderIcons();
+}
+
+function addYear() {
+  const raw = window.prompt("輸入要新增的年份，例如 2026");
+  if (!raw) return;
+  const year = raw.trim();
+  if (!/^\d{4}$/.test(year)) {
+    window.alert("請輸入 4 位數年份，例如 2026。");
+    return;
+  }
+  const ledger = currentLedger();
+  if (!allYears().includes(year)) {
+    ledger.userYears = [...(ledger.userYears || []), year];
+  }
+  ledger.selectedYear = year;
+  $("#filterCategory").value = "全部類別";
+  render();
 }
 
 function render() {
@@ -459,6 +519,7 @@ function addExpense(event) {
   const file = $("#invoiceInput").files[0];
   currentLedger().expenses.push({
     id: crypto.randomUUID(),
+    year: selectedYear(),
     category: $("#categoryInput").value,
     amount: Number($("#amountInput").value),
     date: $("#dateInput").value,
@@ -472,9 +533,10 @@ function addExpense(event) {
 }
 
 function exportCsv() {
-  const header = ["Project", "Date", "Category", "Amount NTD", "Vendor", "Invoice", "Note"];
+  const header = ["Project", "Year", "Date", "Category", "Amount NTD", "Vendor", "Invoice", "Note"];
   const rows = currentLedger().expenses.map((expense) => [
     currentProject().name,
+    expense.year,
     expense.date,
     expense.category,
     expense.amount,
@@ -531,6 +593,10 @@ function bindEvents() {
   });
 
   $("#yearTabs").addEventListener("click", (event) => {
+    if (event.target.closest("[data-add-year]")) {
+      addYear();
+      return;
+    }
     const tab = event.target.closest("[data-year]");
     if (!tab) return;
     currentLedger().selectedYear = tab.dataset.year;

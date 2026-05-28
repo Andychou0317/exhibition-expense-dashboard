@@ -313,6 +313,7 @@ nav {
 .project-tabs,
 .year-tabs {
   display: inline-flex;
+  flex-wrap: wrap;
   width: fit-content;
   border: 1px solid var(--line);
   background: #fff;
@@ -344,6 +345,12 @@ nav {
 
 .year-tab {
   min-width: 92px;
+}
+
+.year-add {
+  min-width: 104px;
+  color: var(--accent-strong);
+  background: #e7f4f2;
 }
 
 .metric-card,
