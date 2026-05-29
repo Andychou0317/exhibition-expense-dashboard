@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Exhibition Expense Desk</title>
+    <title>MKT expense</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -15,9 +15,9 @@
           <span></span>
         </div>
         <form class="login-panel" id="loginForm">
-          <p class="eyebrow">Private Exhibition Ledger</p>
-          <h1 id="loginTitle">展覽花費管理</h1>
-          <p class="muted">輸入密碼後查看近期展覽預算、花費分類與 invoice 入庫紀錄。</p>
+          <p class="eyebrow">Private Marketing Ledger</p>
+          <h1 id="loginTitle">MKT expense</h1>
+          <p class="muted">輸入密碼後查看行銷預算、實際花費、展覽費用與 invoice 入庫紀錄。</p>
           <label for="passwordInput">密碼</label>
           <div class="password-row">
             <input id="passwordInput" type="password" autocomplete="current-password" placeholder="輸入密碼" />
@@ -27,18 +27,21 @@
           </div>
           <button class="primary-action" type="submit">登入</button>
           <p class="form-error" id="loginError" role="alert"></p>
-          <p class="hint">Demo 密碼：<strong>expo2026</strong></p>
+          <p class="hint">密碼：<strong>JUMBOMKT2026</strong></p>
         </form>
       </section>
 
       <section class="app-view is-hidden" id="appView">
         <aside class="sidebar">
           <div>
-            <p class="eyebrow">Expense Control</p>
-            <h2>展覽支出</h2>
+            <p class="eyebrow">MKT expense</p>
+            <h2>MKT expense</h2>
           </div>
           <nav aria-label="Expense sections">
-            <a href="#overview" class="nav-item is-active"><span data-icon="layout"></span>總覽</a>
+            <button class="nav-item is-active" type="button" data-view="mkt"><span data-icon="layout"></span>總覽</button>
+            <div class="nav-group-label">展覽費用 Dashboard</div>
+            <button class="nav-item project-tab" type="button" role="tab" aria-selected="true" data-view="exhibition" data-project="g2e">G2E</button>
+            <button class="nav-item project-tab" type="button" role="tab" aria-selected="false" data-view="exhibition" data-project="sigma">Sigma</button>
             <a href="#entry" class="nav-item"><span data-icon="upload"></span>新增入庫</a>
             <a href="#records" class="nav-item"><span data-icon="file"></span>紀錄</a>
           </nav>
@@ -49,7 +52,7 @@
           <header class="topbar">
             <div>
               <p class="eyebrow">目前專案</p>
-              <h1 id="projectTitle">G2E 展覽費用 Dashboard</h1>
+              <h1 id="projectTitle">Mkt expense</h1>
             </div>
             <div class="budget-editor">
               <label for="budgetInput">預估 Budget</label>
@@ -60,12 +63,114 @@
             </div>
           </header>
 
-          <div class="project-tabs" role="tablist" aria-label="展覽專案">
-            <button class="project-tab is-active" type="button" role="tab" aria-selected="true" data-project="g2e">G2E</button>
-            <button class="project-tab" type="button" role="tab" aria-selected="false" data-project="sigma">Sigma</button>
-          </div>
+          <section class="mkt-view" id="mktView">
+            <div class="project-tabs" role="tablist" aria-label="行銷類型">
+              <button class="project-tab is-active" type="button" data-mkt-line="landbased">Landbased</button>
+              <button class="project-tab" type="button" data-mkt-line="igaming">iGaming</button>
+            </div>
+            <div class="year-tabs" id="mktYearTabs" role="tablist" aria-label="行銷費用年份"></div>
 
-          <div class="year-tabs" id="yearTabs" role="tablist" aria-label="費用年份"></div>
+            <section class="summary-grid">
+              <article class="metric-card">
+                <span class="metric-icon" data-icon="target"></span>
+                <p>預估花費</p>
+                <strong id="mktEstimatedTotal">NT$0</strong>
+                <small id="mktEstimatedNote">-</small>
+              </article>
+              <article class="metric-card">
+                <span class="metric-icon" data-icon="wallet"></span>
+                <p>實際花費</p>
+                <strong id="mktActualTotal">NT$0</strong>
+                <small id="mktActualNote">-</small>
+              </article>
+              <article class="metric-card">
+                <span class="metric-icon" data-icon="percent"></span>
+                <p>Budget 使用率</p>
+                <strong id="mktDiffTotal">NT$0</strong>
+                <small id="mktDiffNote">-</small>
+              </article>
+            </section>
+
+            <section class="analysis-layout">
+              <article class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Marketing Categories</p>
+                    <h2 id="mktCategoryTitle">行銷費用分類</h2>
+                  </div>
+                  <span class="status-pill" id="mktTopCategory">-</span>
+                </div>
+                <div class="category-list" id="mktCategoryList"></div>
+              </article>
+
+              <article class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Actual vs Estimated</p>
+                    <h2>執行狀態</h2>
+                  </div>
+                </div>
+                <div class="progress-wrap">
+                  <div class="progress-ring" id="mktProgressRing"><span id="mktRingPercent">0%</span></div>
+                  <div>
+                    <p class="is-hidden" id="mktNarrative">選擇年份後即可查看行銷預估與實際差異。</p>
+                    <dl class="mini-stats">
+                      <div><dt>最高項目</dt><dd id="mktHighestCategory">-</dd></div>
+                      <div><dt>Budget 差異</dt><dd id="mktSourceNote">-</dd></div>
+                      <div><dt>資料狀態</dt><dd id="mktDataStatus">-</dd></div>
+                    </dl>
+                  </div>
+                </div>
+              </article>
+            </section>
+
+            <section class="panel history-overview">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Annual Summary</p>
+                  <h2>年度摘要</h2>
+                </div>
+              </div>
+              <div class="year-grid" id="mktYearSummaryGrid"></div>
+            </section>
+
+            <section class="mkt-tools-grid">
+              <article class="panel import-panel compact-import-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Actual Expense</p>
+                    <h2 id="mktImportTitle">上傳當年實際花費</h2>
+                  </div>
+                </div>
+                <div class="import-tools">
+                  <label>
+                    上傳 PDF / Excel / 截圖
+                    <input id="mktActualFileInput" type="file" accept=".pdf,.xlsx,.xls,.csv,.tsv,image/png,image/jpeg,image/webp" />
+                  </label>
+                  <button class="ghost-action" id="mktImportButton" type="button"><span data-icon="upload"></span>載入實際花費</button>
+                  <p class="import-status" id="mktImportStatus">會匯入到目前選取的 Landbased/iGaming 與年份。</p>
+                </div>
+              </article>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Analysis Table</p>
+                  <h2 id="mktTableTitle">行銷費用分析表</h2>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="history-table">
+                  <thead id="mktTableHead"></thead>
+                  <tbody id="mktTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section class="exhibition-view is-hidden" id="exhibitionView">
+            <div class="year-tabs" id="yearTabs" role="tablist" aria-label="費用年份"></div>
 
           <section class="summary-grid" id="overview">
             <article class="metric-card">
@@ -202,8 +307,27 @@
               <button class="primary-action" type="submit"><span data-icon="plus"></span>入庫</button>
             </form>
 
-            <article class="panel quick-add">
+            <article class="panel import-panel">
               <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Import Sheet</p>
+                  <h2>匯入 Excel / 截圖</h2>
+                </div>
+              </div>
+              <div class="import-tools">
+                <label>
+                  上傳 Excel / CSV / 截圖
+                  <input id="sheetFileInput" type="file" accept=".xlsx,.xls,.csv,.tsv,image/png,image/jpeg,image/webp" />
+                </label>
+                <label>
+                  CSV 連結
+                  <input id="sheetUrlInput" type="url" placeholder="可貼 CSV export 連結，或直接上傳截圖" />
+                </label>
+                <button class="ghost-action" id="importSheetButton" type="button"><span data-icon="upload"></span>載入表格</button>
+                <p class="import-status" id="importStatus">會匯入到目前選取的展覽與年份。</p>
+              </div>
+              <div class="history-divider"></div>
+              <div class="panel-heading compact-heading">
                 <div>
                   <p class="eyebrow">Quick View</p>
                   <h2>常用類別</h2>
@@ -241,9 +365,13 @@
               </table>
             </div>
           </section>
+          </section>
         </div>
       </section>
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

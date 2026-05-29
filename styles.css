@@ -229,6 +229,9 @@ nav {
 }
 
 .nav-item {
+  border: 0;
+  background: transparent;
+  width: 100%;
   color: #dbe8e6;
   text-decoration: none;
   display: flex;
@@ -237,11 +240,21 @@ nav {
   min-height: 42px;
   padding: 0 12px;
   border-radius: 8px;
+  font-weight: 800;
+  text-align: left;
 }
 
 .nav-item:hover,
 .nav-item.is-active {
   background: var(--nav-soft);
+}
+
+.nav-group-label {
+  color: #73d4cc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  margin: 10px 10px 2px;
+  text-transform: uppercase;
 }
 
 .sidebar .ghost-action {
@@ -271,6 +284,10 @@ nav {
 
 .budget-editor {
   min-width: 240px;
+}
+
+.topbar.is-mkt .budget-editor {
+  display: none;
 }
 
 .money-input {
@@ -307,7 +324,17 @@ nav {
 .analysis-layout,
 .entry-grid,
 .history-grid {
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  grid-template-columns: minmax(0, 0.92fr) minmax(500px, 1.08fr);
+}
+
+.mkt-view .analysis-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.mkt-tools-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
 }
 
 .project-tabs,
@@ -333,10 +360,19 @@ nav {
   font-weight: 900;
 }
 
+.project-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .project-tab.is-active,
 .year-tab.is-active {
   background: var(--nav);
   color: #fff;
+}
+
+.sidebar .project-tab.is-active {
+  background: var(--nav-soft);
 }
 
 .year-tabs {
@@ -588,9 +624,13 @@ button.year-card {
 .progress-wrap {
   min-height: 220px;
   display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
+  grid-template-columns: minmax(132px, 0.72fr) minmax(320px, 1.28fr);
   gap: 24px;
   align-items: center;
+}
+
+.progress-wrap > div {
+  min-width: 0;
 }
 
 .progress-ring {
@@ -616,15 +656,20 @@ button.year-card {
 .mini-stats {
   display: grid;
   gap: 10px;
-  margin: 20px 0 0;
+  margin: 16px 0 0;
 }
 
 .mini-stats div {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
+  display: grid;
+  grid-template-columns: minmax(100px, 0.58fr) minmax(0, 1.42fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 10px 12px;
+  min-width: 0;
 }
 
 .mini-stats dt {
@@ -636,6 +681,32 @@ button.year-card {
   margin: 0;
   font-weight: 900;
   text-align: right;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: normal;
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+#highestCategory,
+#averageExpense,
+#lastUpdated {
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+#mktHighestCategory {
+  white-space: normal;
+}
+
+.mkt-view .mini-stats {
+  margin-top: 0;
+}
+
+.mkt-view .progress-wrap {
+  grid-template-columns: minmax(132px, 170px) minmax(0, 1fr);
 }
 
 .form-grid {
@@ -652,9 +723,69 @@ textarea {
   resize: vertical;
 }
 
+.note-editor {
+  min-width: 220px;
+  padding: 8px 10px;
+}
+
 .quick-chips {
   display: grid;
   gap: 10px;
+}
+
+.import-tools {
+  display: grid;
+  gap: 10px;
+}
+
+.import-tools .ghost-action {
+  width: 100%;
+}
+
+.import-status {
+  min-height: 22px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.import-status.is-ok {
+  color: var(--ok);
+}
+
+.import-status.is-error {
+  color: var(--danger);
+}
+
+.compact-import-panel {
+  padding: 18px;
+}
+
+.compact-import-panel .panel-heading {
+  margin-bottom: 12px;
+}
+
+.compact-import-panel h2 {
+  font-size: 1.15rem;
+}
+
+.compact-import-panel input {
+  padding: 10px;
+}
+
+.compact-import-panel .ghost-action {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.compact-import-panel .import-tools {
+  grid-template-columns: minmax(260px, 1fr) auto minmax(220px, 1fr);
+  align-items: end;
+}
+
+.compact-import-panel .import-status {
+  align-self: center;
 }
 
 .quick-chip {
@@ -785,8 +916,14 @@ td {
 
   .summary-grid,
   .analysis-layout,
+  .mkt-view .analysis-layout,
+  .mkt-tools-grid,
   .entry-grid,
   .history-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-import-panel .import-tools {
     grid-template-columns: 1fr;
   }
 
@@ -821,6 +958,14 @@ td {
   .progress-wrap,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mini-stats div {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-stats dd {
+    text-align: left;
   }
 
   .category-row {
